@@ -13,11 +13,6 @@ if (!defined('DOKU_INC'))
     die();
 
 /**
- * Latexit uses some function to load plugins.
- */
-require_once DOKU_INC . 'inc/pluginutils.php';
-
-/**
  * Action plugin component class handles calling of events before and after
  * some actions.
  */
@@ -28,12 +23,9 @@ class action_plugin_latexit extends DokuWiki_Action_Plugin {
      *
      * @param Doku_Event_Handler $controller DokuWiki's event controller object
      */
-    public function register(Doku_Event_Handler &$controller) {
+    public function register(Doku_Event_Handler $controller) {
         //call _purgeCache before using parser's cache
         $controller->register_hook('PARSER_CACHE_USE', 'BEFORE', $this, '_purgeCache');
-        //call _setLatexitSort before initializing language (the very first event in DW)
-        $controller->register_hook('INIT_LANG_LOAD', 'BEFORE', $this, '_setLatexitSort');
-
 
         $controller->register_hook('TEMPLATE_PAGETOOLS_DISPLAY', 'BEFORE', $this, 'addbutton', array());
     }
@@ -50,57 +42,39 @@ class action_plugin_latexit extends DokuWiki_Action_Plugin {
      * @author     Luigi Micco <l.micco@tiscali.it>
      * @author     Andreas Gohr <andi@splitbrain.org>
      */
-    public function addbutton(&$event, $param) {
-        global $ID, $REV, $conf;
+    public function addbutton(Doku_Event $event, $param) {
+        global $ID, $REV;
 
         if ( $this->getConf('showexportbutton') && $event->data['view'] == 'main') {
             $params = array('do' => 'export_latexit');
-            if ($REV)
+            if ($REV) {
                 $params['rev'] = $REV;
-
-            switch ($conf['template']) {
-                case 'dokuwiki':
-                case 'arago':
-                    $event->data['items']['export_latexit'] = '<li>'
-                            . '<a href=' . wl($ID, $params) . '  class="action export_latexit" rel="nofollow" title="Export LaTeX">'
-                            . '<span>Export LaTeX</span>'
-                            . '</a>'
-                            . '</li>';
-                    break;
             }
+
+            // insert button at position before last (up to top)
+            $event->data['items'] = array_slice($event->data['items'], 0, -1, true) +
+                array('export_latexit' =>
+                          '<li>'
+                          . '<a href=' . wl($ID, $params) . '  class="action export_latexit" rel="nofollow" title="' . $this->getLang('export_latex_button') . '">'
+                          . '<span>' . $this->getLang('export_latex_button') . '</span>'
+                          . '</a>'
+                          . '</li>'
+                ) +
+                array_slice($event->data['items'], -1, 1, true);
         }
     }
 
     /**
      * Function purges latexit cache, so even a change in recursively inserted
      * page will generate new file.
+     *
      * @param Doku_Event $event Pointer to the give DW event.
      * @param array $param event parameters
      */
-    public function _purgeCache(Doku_Event &$event, $param) {
+    public function _purgeCache(Doku_Event $event, $param) {
         if ($event->data->mode == 'latexit') {
             //touching main config will make all cache invalid
             touch(DOKU_INC . 'conf/local.php');
-        }
-    }
-
-    /**
-     * When LaTeX export is called, this function will change priority
-     * of its Syntax component to the highest one.
-     * @param Doku_Event $event Pointer to the give DW event.
-     * @param array $param event parameters
-     */
-    public function _setLatexitSort(Doku_Event &$event, $param) {
-        if (isset($_GET['do']) && $_GET['do'] == 'export_latexit') {
-            //load syntax component and set its sort order
-
-            /** @var syntax_plugin_latexit_base $syntax_plugin */
-            $syntax_plugin = plugin_load('syntax', 'latexit_base');
-            $syntax_plugin->_setSort(1);
-
-            /** @var syntax_plugin_latexit_mathjax $syntax_plugin */
-            $syntax_plugin = plugin_load('syntax', 'latexit_mathjax');
-            $syntax_plugin->_setSort(2);
         }
     }
 

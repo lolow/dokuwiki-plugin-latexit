@@ -13,24 +13,14 @@ if (!defined('DOKU_INC'))
 /**
  * Latexit plugin extends default renderer class in this file
  */
-require_once DOKU_INC . 'inc/parser/renderer.php';
 
 /**
  * includes additional plugin classes
  */
 require_once DOKU_INC . 'lib/plugins/latexit/classes/Package.php';
 require_once DOKU_INC . 'lib/plugins/latexit/classes/RowspanHandler.php';
-require_once DOKU_INC . 'lib/plugins/latexit/classes/BibHandler.php';
 require_once DOKU_INC . 'lib/plugins/latexit/classes/LabelHandler.php';
 require_once DOKU_INC . 'lib/plugins/latexit/classes/RecursionHandler.php';
-
-/**
- * includes default DokuWiki files containing functions used by latexit plugin
- */
-require_once DOKU_INC . 'inc/parserutils.php';
-require_once DOKU_INC . 'inc/pageutils.php';
-require_once DOKU_INC . 'inc/pluginutils.php';
-require_once DOKU_INC . 'inc/confutils.php';
 
 /**
  * Main latexit class, specifies how will be latex rendered
@@ -130,12 +120,6 @@ class renderer_plugin_latexit extends Doku_Renderer {
     protected $media;
 
     /**
-     * Stores the instance of BibHandler
-     * @var BibHandler 
-     */
-    protected $bib_handler;
-
-    /**
      * This handler makes all the header labels unique
      * @var LabelHandler
      */
@@ -148,7 +132,7 @@ class renderer_plugin_latexit extends Doku_Renderer {
     protected $recursion_handler;
 
     /**
-     * @var bool
+     * @var helper_plugin_zotero_bibliography
      */
     protected $bibliography;
 
@@ -226,12 +210,6 @@ class renderer_plugin_latexit extends Doku_Renderer {
         $this->last_level_increase = 0;
         $this->rowspan_handler = new RowspanHandler();
         $this->media = FALSE;
-        $this->bibliography = FALSE;
-        if (!plugin_isdisabled('zotero')) {
-            $this->bib_handler = BibHandler::getInstance();
-        } else {
-            $this->bib_handler = NULL;
-        }
         $this->label_handler = LabelHandler::getInstance();
         $this->recursion_handler = RecursionHandler::getInstance();
 
@@ -274,15 +252,15 @@ class renderer_plugin_latexit extends Doku_Renderer {
 
 
             // start document
-            $this->_c('begin', 'document', 2);
+            $this->_latexcommand('begin', 'document', 2);
 
             //if title or author or date is set, it prints it
             if ($this->getConf('date') || $this->getConf('title') != "" || $this->getConf('author') != "") {
-                $this->_c('maketitle');
+                $this->_latexcommand('maketitle');
             }
             //if table of contents should be displayed, it prints it
             if ($this->getConf('table_of_content')) {
-                $this->_c('tableofcontents', NULL, 2);
+                $this->_latexcommand('tableofcontents', NULL, 2);
             }
         }
     }
@@ -308,7 +286,7 @@ class renderer_plugin_latexit extends Doku_Renderer {
         }
 
         // print document settings
-        $this->_c('documentclass', $this->getConf('document_class'), 1, $params);
+        $this->_latexcommand('documentclass', $this->getConf('document_class'), 1, $params);
 
         // print the packages
         $packages = $this->store->getPackages();
@@ -321,7 +299,7 @@ class renderer_plugin_latexit extends Doku_Renderer {
         $preamble = $this->store->getPreamble();
         foreach($preamble as $command) {
             if(is_array($command)) {
-                $this->_c($command[0], $command[1], $command[2], $command[3]);
+                $this->_latexcommand($command[0], $command[1], $command[2], $command[3]);
             }else {
                 $this->doc .= $command;
             }
@@ -348,15 +326,17 @@ class renderer_plugin_latexit extends Doku_Renderer {
 
         //this is MAIN PAGE of exported file, we can finalize document
         if (!$this->_immersed()) {
-            $this->_n(2);
+            $this->_newline(2);
 
-            if ($this->_useBibliography() && !$this->bib_handler->isEmpty()) {
-                $this->_c('bibliographystyle', $this->getConf('bibliography_style'));
-                $this->_c('bibliography', $this->getConf('bibliography_name'), 2);
+            $hasBibliography = $this->bibliography && !$this->bibliography->isEmpty();
+
+            if ($hasBibliography) {
+                $this->_latexcommand('bibliographystyle', $this->getConf('bibliography_style'));
+                $this->_latexcommand('bibliography', $this->getConf('bibliography_name'), 2);
             }
 
             $this->doc .= $this->getConf('document_footer');
-            $this->_c('end', 'document');
+            $this->_latexcommand('end', 'document');
 
             // the document is done, add the prefix
             $this->document_prefix();
@@ -371,10 +351,10 @@ class renderer_plugin_latexit extends Doku_Renderer {
             $output = "output" . time() . ".latex";
 
             //file to download will be ZIP archive
-            if ($this->media || ($this->_useBibliography() && !$this->bib_handler->isEmpty())) {
+            if ($this->media || $hasBibliography) {
                 $filename = $zip->filename;
-                if ($this->_useBibliography() && !$this->bib_handler->isEmpty()) {
-                    $zip->addFromString($this->getConf('bibliography_name') . '.bib', $this->bib_handler->getBibtex());
+                if ($hasBibliography) {
+                    $zip->addFromString($this->getConf('bibliography_name') . '.bib', $this->bibliography->getBibliography());
                 }
                 $zip->addFromString($output, $this->doc);
                 //zip archive is created when this function is called,
@@ -433,7 +413,7 @@ class renderer_plugin_latexit extends Doku_Renderer {
             //when document is recursively inserted, it will continue from previous headers level
             $level += $this->headers_level;
         }
-        $this->_n(2);
+        $this->_newline(2);
 
         //the array of levels is indexed from 0
         $level--;
@@ -446,12 +426,12 @@ class renderer_plugin_latexit extends Doku_Renderer {
         else {
             //to force a newline in latex, there has to be some empty char before, e.g. ~
             $this->doc .= '~';
-            $this->_c('newline');
-            $this->_c('textbf', $this->_latexSpecialChars($text));
+            $this->_latexcommand('newline');
+            $this->_latexcommand('textbf', $this->_latexSpecialChars($text));
         }
         //add a label, so each section can be referenced
         $label = $this->label_handler->newLabel($this->_createLabel($text));
-        $this->_c('label', 'sec:' . $label);
+        $this->_latexcommand('label', 'sec:' . $label);
     }
 
     /**
@@ -469,7 +449,7 @@ class renderer_plugin_latexit extends Doku_Renderer {
      * It makes new paragraph in LaTeX Document.
      */
     function p_open() {
-        $this->_n(2);
+        $this->_newline(2);
     }
 
     /**
@@ -490,10 +470,10 @@ class renderer_plugin_latexit extends Doku_Renderer {
      * It adds centered horizontal line in LaTeX Document.
      */
     function hr() {
-        $this->_n(2);
-        $this->_c('begin', 'center');
+        $this->_newline(2);
+        $this->_latexcommand('begin', 'center');
         $this->doc .= "\line(1,0){250}\n";
-        $this->_c('end', 'center', 2);
+        $this->_latexcommand('end', 'center', 2);
     }
 
     /**
@@ -666,7 +646,7 @@ class renderer_plugin_latexit extends Doku_Renderer {
         $this->last_level = $level;
         $this->_indent_list();
         $this->doc .= "  ";
-        $this->_c('item', NULL, 0);
+        $this->_latexcommand('item', NULL, 0);
     }
 
     /**
@@ -674,7 +654,7 @@ class renderer_plugin_latexit extends Doku_Renderer {
      * It adds newline to the latex file.
      */
     function listcontent_close() {
-        $this->_n();
+        $this->_newline();
     }
 
     /**
@@ -723,27 +703,27 @@ class renderer_plugin_latexit extends Doku_Renderer {
      * @param string $text Preformatted text.
      */
     function preformatted($text) {
-        $this->_n();
-        $this->_c('begin', 'verbatim');
+        $this->_newline();
+        $this->_latexcommand('begin', 'verbatim');
         $this->doc .= $text;
-        $this->_n();
-        $this->_c('end', 'verbatim');
+        $this->_newline();
+        $this->_latexcommand('end', 'verbatim');
     }
 
     /**
      * Opens the quote environment.
      */
     function quote_open() {
-        $this->_n();
-        $this->_c('begin', 'quote');
+        $this->_newline();
+        $this->_latexcommand('begin', 'quote');
     }
 
     /**
      * Closes the quote environment.
      */
     function quote_close() {
-        $this->_n();
-        $this->_c('end', 'quote');
+        $this->_newline();
+        $this->_latexcommand('end', 'quote');
     }
 
     /**
@@ -783,16 +763,16 @@ class renderer_plugin_latexit extends Doku_Renderer {
             $this->doc .= $this->_latexSpecialChars($file);
         }
         $this->_close();
-        $this->_n();
+        $this->_newline();
         //open the code block
-        $this->_c('begin', 'lstlisting');
+        $this->_latexcommand('begin', 'lstlisting');
 
         //get rid of some non-standard characters
         $text = str_replace('”', '"', $text);
         $text = str_replace('–', '-', $text);
         $this->doc .= $text;
         //close the code block
-        $this->_c('end', 'lstlisting', 2);
+        $this->_latexcommand('end', 'lstlisting', 2);
     }
 
     /**
@@ -957,7 +937,7 @@ class renderer_plugin_latexit extends Doku_Renderer {
             $this->doc .= $this->_latexSpecialChars($hash);
         }
         $this->doc .= ' (';
-        $this->_c('autoref', "sec:" . $hash, 0);
+        $this->_latexcommand('autoref', "sec:" . $hash, 0);
         $this->doc .= ')';
     }
 
@@ -1006,10 +986,10 @@ class renderer_plugin_latexit extends Doku_Renderer {
         if ($this->recursive) {
             //check if it can continue with recursive inserting of this page
             if ($this->recursion_handler->disallow(wikifn($link))) {
-                $this->_n(2);
+                $this->_newline(2);
                 //warn the user about unending recursion
                 $this->doc .= "%!!! RECURSION LOOP HAS BEEN PREVENTED !!!";
-                $this->_n(2);
+                $this->_newline(2);
             } else {
                 //insert this page to RecursionHandler
                 $this->recursion_handler->insert(wikifn($link));
@@ -1020,16 +1000,16 @@ class renderer_plugin_latexit extends Doku_Renderer {
                 //start parsing linked page - call the latexit plugin again
                 $data = p_cached_output(wikifn($link), 'latexit');
 
-                $this->_n(2);
+                $this->_newline(2);
                 //insert comment to LaTeX
                 $this->doc .= "%RECURSIVELY INSERTED FILE START";
-                $this->_n(2);
+                $this->_newline(2);
                 //insert parsed data
                 $this->doc .= $data;
-                $this->_n(2);
+                $this->_newline(2);
                 //insert comment to LaTeX
                 $this->doc .= "%RECURSIVELY INSERTED FILE END";
-                $this->_n(2);
+                $this->_newline(2);
                 //get headers level to previous level
                 $this->headers_level -= $this->last_level_increase;
                 //remove this page from RecursionHandler
@@ -1214,14 +1194,14 @@ class renderer_plugin_latexit extends Doku_Renderer {
         $this->store->addPackage($pckg);
 
         //print the header
-        $this->_c('begin', 'longtable', 0);
+        $this->_latexcommand('begin', 'longtable', 0);
         $this->doc .= "{|";
         for ($i = 0; $i < $maxcols; $i++) {
             $this->doc .= $this->getConf('default_table_align') . "|";
         }
         $this->_close();
-        $this->_n();
-        $this->_c('hline');
+        $this->_newline();
+        $this->_latexcommand('hline');
     }
 
     /**
@@ -1233,7 +1213,7 @@ class renderer_plugin_latexit extends Doku_Renderer {
         //close the table environment
         $this->in_table = false;
         //print the footer
-        $this->_c('end', 'longtable', 2);
+        $this->_latexcommand('end', 'longtable', 2);
     }
 
     /**
@@ -1250,11 +1230,11 @@ class renderer_plugin_latexit extends Doku_Renderer {
     function tablerow_close() {
         //add syntax for end of a row
         $this->doc .= " \\\\ ";
-        $this->_n();
+        $this->_newline();
         //add line
-        $this->_c('hline');
+        $this->_latexcommand('hline');
         $this->doc .= " ";
-        $this->_n();
+        $this->_newline();
     }
 
     /**
@@ -1377,7 +1357,7 @@ class renderer_plugin_latexit extends Doku_Renderer {
      * @param int $newlines How many newlines after the command to insert.
      * @param array $params Array of parameters to be inserted. 
      */
-    protected function _c($command, $text = NULL, $newlines = 1, $params = NULL) {
+    protected function _latexcommand($command, $text = NULL, $newlines = 1, $params = NULL) {
         //if there is no text, there will be no brackets
         if (is_null($text)) {
             $brackets = false;
@@ -1390,14 +1370,14 @@ class renderer_plugin_latexit extends Doku_Renderer {
             $this->doc .= $text;
             $this->_close();
         }
-        $this->_n($newlines);
+        $this->_newline($newlines);
     }
 
     /**
      * Function inserting new lines in the LaTeX file.
      * @param int $cnt How many new lines to insert.
      */
-    protected function _n($cnt = 1) {
+    protected function _newline($cnt = 1) {
         for ($i = 0; $i < $cnt; $i++) {
             $this->doc .= "\n";
         }
@@ -1437,7 +1417,7 @@ class renderer_plugin_latexit extends Doku_Renderer {
      * @param string $command Proper LaTeX list command
      */
     protected function _list_open($command) {
-        $this->_n();
+        $this->_newline();
         if ($this->list_opened) {
             for ($i = 1; $i < $this->last_level + 1; $i++) {
                 //indention
@@ -1447,7 +1427,7 @@ class renderer_plugin_latexit extends Doku_Renderer {
             $this->list_opened = TRUE;
         }
         $this->_indent_list();
-        $this->_c('begin', $command);
+        $this->_latexcommand('begin', $command);
     }
 
     /**
@@ -1459,7 +1439,7 @@ class renderer_plugin_latexit extends Doku_Renderer {
             $this->list_opened = FALSE;
         }
         $this->_indent_list();
-        $this->_c('end', $command);
+        $this->_latexcommand('end', $command);
     }
 
     /**
@@ -1513,7 +1493,7 @@ class renderer_plugin_latexit extends Doku_Renderer {
         $this->doc .= $this->_pdfString($text);
         $this->_close();
         $this->_close();
-        $this->_n();
+        $this->_newline();
     }
 
     /**
@@ -1650,20 +1630,20 @@ class renderer_plugin_latexit extends Doku_Renderer {
         if (!is_null($align)) {
             switch ($align) {
                 case "center":
-                    $this->_c('centering', NULL, 0);
+                    $this->_latexcommand('centering', NULL, 0);
                     break;
                 case "left":
-                    $this->_c('raggedleft', NULL, 0);
+                    $this->_latexcommand('raggedleft', NULL, 0);
                     break;
                 case "right":
-                    $this->_c('raggedright', NULL, 0);
+                    $this->_latexcommand('raggedright', NULL, 0);
                     break;
                 default :
                     break;
             }
         }
         //insert image with params from config.
-        $this->_c('includegraphics', $path, 1, array($this->getConf('image_params')));
+        $this->_latexcommand('includegraphics', $path, 1, array($this->getConf('image_params')));
     }
 
     /**
@@ -1724,16 +1704,6 @@ class renderer_plugin_latexit extends Doku_Renderer {
     }
 
     /**
-     * Handle a new BibEntry
-     * @param string $entry
-     */
-    public function _bibEntry($entry) {
-        if ($this->_useBibliography()) {
-            $this->bib_handler->insert($entry);
-        }
-    }
-
-    /**
      * Escape the text, so it can be used as an pdf string for headers
      * @param string $text
      * @return string
@@ -1755,14 +1725,6 @@ class renderer_plugin_latexit extends Doku_Renderer {
         //http://stackoverflow.com/questions/5199133/function-to-return-only-alpha-numeric-characters-from-string
         $text = preg_replace("/[^a-zA-Z0-9_ ]+/", "", $text);
         return $text;
-    }
-
-    public function _useBibliography() {
-        if (is_null($this->bib_handler)) {
-            return false;
-        } else {
-            return true;
-        }
     }
     
     /**

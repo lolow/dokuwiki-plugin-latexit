@@ -10,7 +10,7 @@ require_once DOKU_INC . 'lib/plugins/latexit/classes/Package.php';
  * @group plugin_latexit
  * @group plugins
  */
-class paclage_plugin_latexit_test extends DokuWikiTest {
+class package_plugin_latexit_test extends DokuWikiTest {
 
     /**
      * These plugins will be loaded for testing.

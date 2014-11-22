@@ -15,7 +15,7 @@ class syntax_plugin_latexit_base_test extends DokuWikiTest {
     protected $pluginsEnabled = array('latexit', 'mathjax', 'imagereference', 'zotero');
     /**
      * Variable to store the instance of syntax plugin.
-     * @var syntax_plugin_latexit
+     * @var syntax_plugin_latexit_base
      */
     protected $s;
 
@@ -36,15 +36,6 @@ class syntax_plugin_latexit_base_test extends DokuWikiTest {
     }
 
     /**
-     * Testing getSort method.
-     */
-    public function test_getSort() {
-        $this->assertEquals(245, $this->s->getSort());
-        $this->s->_setSort(25);
-        $this->assertEquals(25, $this->s->getSort());
-    }
-
-    /**
      * Testing isSingleton method.
      */
     public function test_isSingleton() {
@@ -55,14 +46,26 @@ class syntax_plugin_latexit_base_test extends DokuWikiTest {
      * Testing handle method.
      */
     public function test_handle() {
-        //test zotero part of the method
-        $r = $this->s->handle("\cite{bibliography}", "", 0, new Doku_Handler());
-        $this->assertEquals("bibliography", $r);
-
         //test recursive insertion part of the method
-        $r = $this->s->handle("~~~RECURSIVE~~~", "", 0, new Doku_Handler());
-        $array = array("", array("~~~", "~~~"));
-        $this->assertEquals($r, $array);
+        $result = $this->s->handle("~~~RECURSIVE~~~", "", 0, new Doku_Handler());
+        $expect = array("", 4);
+        $this->assertEquals($expect, $result);
+    }
+    public function test_handle_invalidsyntaxes() {
+        //too long, more than 6 ~
+        $result = $this->s->handle("~~~~~~~RECURSIVE~~~~~~~", "", 0, new Doku_Handler());
+        $expect = array("", 1);
+        $this->assertEquals($expect, $result);
+
+        //too short, only 1 ~
+        $result = $this->s->handle("~RECURSIVE~", "", 0, new Doku_Handler());
+        $expect = array("", null);
+        $this->assertEquals($expect, $result);
+
+        //unequal tags
+        $result = $this->s->handle("~~~RECURSIVE~~", "", 0, new Doku_Handler());
+        $expect = false;
+        $this->assertEquals($expect, $result);
     }
 
     /**
@@ -70,26 +73,28 @@ class syntax_plugin_latexit_base_test extends DokuWikiTest {
      */
     public function test_render() {
         //test recursive inserting part of method with xhtml renderer
-        $r = new Doku_Renderer_xhtml();
-        $data = array("", array("~~~", "~~~"));
-        $result = $this->s->render("xhtml", $r, $data);
-        $this->assertEquals("<h4>Next link is recursively inserted.</h4>", $r->doc);
+        $renderer = new Doku_Renderer_xhtml();
+        $data = array("", 4);
+        $result = $this->s->render("xhtml", $renderer, $data);
+        $this->assertEquals("<h4>Next link is recursively inserted.</h4>", $renderer->doc);
         $this->assertTrue($result);
+
+        //nothing recognized
+        $renderer = new Doku_Renderer_xhtml();
+        $data = array("", null);
+        $result = $this->s->render("xhtml", $renderer, $data);
+        $this->assertEquals("", $renderer->doc);
+        $this->assertFalse($result);
         
         //test recursive inserting part of method with latex renderer
-        $r = new renderer_plugin_latexit();
-        $data = array("", array("~~~", "~~~"));
-        $result = $this->s->render("latex", $r, $data);
+        $renderer = new renderer_plugin_latexit();
+        $data = array("", 4);
+        $result = $this->s->render("latex", $renderer, $data);
+        $this->assertEquals("", $renderer->doc);
         $this->assertTrue($result);
-        
-        //test zotero of method
-        $data = "bibliography";
-        $result = $this->s->render("latex", $r, $data);
-        $this->assertEquals("\\cite{bibliography}", $r->doc);
-        $this->assertTrue($result);
-                
+
         //test with not implemented rendering mode
-        $result = $this->s->render("doc", $r, $data);
+        $result = $this->s->render("doc", $renderer, $data);
         $this->assertFalse($result);        
     }
 

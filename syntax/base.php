@@ -16,12 +16,6 @@ if (!defined('DOKU_INC'))
 class syntax_plugin_latexit_base extends DokuWiki_Syntax_Plugin {
 
     /**
-     * Order in which this Syntax plugin will be called.
-     * @var int 
-     */
-    protected $sort;
-
-    /**
      * @return string Syntax mode type
      */
     public function getType() {
@@ -32,11 +26,7 @@ class syntax_plugin_latexit_base extends DokuWiki_Syntax_Plugin {
      * @return int Sort order - Low numbers go before high numbers
      */
     public function getSort() {
-        if (!isset($this->sort)) {
-            return 245;
-        } else {
-            return $this->sort;
-        }
+        return 245;
     }
 
     /**
@@ -46,16 +36,6 @@ class syntax_plugin_latexit_base extends DokuWiki_Syntax_Plugin {
      */
     public function connectTo($mode) {
         $this->Lexer->addSpecialPattern('~~~*RECURSIVE~*~~', $mode, 'plugin_latexit_base');
-        $this->Lexer->addSpecialPattern('\\\cite.*?\}', $mode, 'plugin_latexit_base');
-    }
-
-    /**
-     * This syntax plugin should be used as a singleton.
-     * (so it can change its sort, when latex will be rendered)
-     * @return boolean
-     */
-    public function isSingleton() {
-        return true;
     }
 
     /**
@@ -67,21 +47,24 @@ class syntax_plugin_latexit_base extends DokuWiki_Syntax_Plugin {
      * @param Doku_Handler    $handler The handler
      * @return array Data for the renderer
      */
-    public function handle($match, $state, $pos, &$handler) {
-        //parse citations from the text (this will be done by this plugin only for latex export)
-        //FIXME cite in paper regex is from zotero plugin, it has to match exactly
-        if (preg_match('/\\\cite(\[([a-zA-Z0-9 \.,\-:]*)\])?\{([a-zA-Z0-9\-:]*?)\}/', $match, $matches)) {
-            //$pageRef = $matches[2];
-            $citeKey = $matches[3];
-            return $citeKey;
-        } //parse RECURSIVE command
-        elseif (preg_match('#~~RECURSIVE~~#', $match)) {
+    public function handle($match, $state, $pos, Doku_Handler $handler) {
+        if (preg_match('#~~RECURSIVE~~#', $match)) {
             $tildas = explode('RECURSIVE', $match);
+
             if ($tildas[0] == $tildas[1]) {
-                return array($state, $tildas);
+                //this will count the level of the header according to number of ~ used
+                $level = 7 - strspn($tildas[0], '~');
+                if($level > 5) $level = 5;
+                if($level < 1) $level = 1;
+
+                return array($state, $level);
+            } else {
+                //handle header with unequal tags as text
+                $handler->_addCall('cdata', array($match), $pos);
+                return false;
             }
         }
-        return array();
+        return array($state, null);
     }
 
     /**
@@ -92,62 +75,30 @@ class syntax_plugin_latexit_base extends DokuWiki_Syntax_Plugin {
      * @param array          $data      The data from the handler() function
      * @return bool If rendering was successful.
      */
-    public function render($mode, &$renderer, $data) {
-        //this will count the level of an following header according to number of ~ used
-        if(is_array($data)) {
+    public function render($mode, Doku_Renderer $renderer, $data) {
+        $level = $data[1];
+        if($level === null) return false;
 
-            switch(strlen($data[1][0])) {
-                case 6:
-                    $level = 1;
-                    break;
-                case 5:
-                    $level = 2;
-                    break;
-                case 4:
-                    $level = 3;
-                    break;
-                case 3:
-                    $level = 4;
-                    break;
-                case 2:
-                    $level = 5;
-                    break;
-                default:
-                    $level = 5;
-                    break;
-            }
-        }
-        //inserts the information about set header level even to XHMTL
         if($mode == 'xhtml') {
-            if(is_array($data)) {
-                $renderer->doc .= '<h'.$level.'>'.hsc($this->getConf('link_insertion_message')).'</h'.$level.'>';
-            }
+            //inserts the information about set header level to XHMTL
+            /** @var Doku_Renderer_xhtml $renderer */
+
+            $renderer->doc .= '<h'.$level.'>'.hsc($this->getConf('link_insertion_message')).'</h'.$level.'>';
             return true;
+
         } elseif($mode == 'latex') {
             //set the next link to be added recursively
-            if(is_array($data)) {
-                //there might be more plugins rendering latex and calling this functions could cause an error
-                if(method_exists($renderer, '_setRecursive')) {
-                    $renderer->_setRecursive(true);
-                    $renderer->_increaseLevel($level - 1);
-                }
-            } //insert citation
-            else {
-                $renderer->doc .= '\\cite{'.$data.'}';
-                $renderer->_bibEntry($data);
+
+            //there might be more plugins rendering latex and calling this functions could cause an error
+            if(method_exists($renderer, '_setRecursive')) {
+                /** @var renderer_plugin_latexit $renderer */
+                $renderer->_setRecursive(true);
+                $renderer->_increaseLevel($level - 1);
             }
+
             return true;
         }
 
         return false;
     }
-
-    /**
-     * Set sort order of the syntax component
-     * @param int $sort Sort order.
-     */
-    public function _setSort($sort) {
-        $this->sort = $sort;
-    }
-
 }
