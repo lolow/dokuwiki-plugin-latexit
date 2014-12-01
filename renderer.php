@@ -60,7 +60,7 @@ class renderer_plugin_latexit extends Doku_Renderer {
     protected $headers_level;
 
     /**
-     * Is TRUE when recursive inserting should be used.
+     * Is true when recursive inserting should be used.
      * @var bool
      */
     protected $recursive;
@@ -102,7 +102,7 @@ class renderer_plugin_latexit extends Doku_Renderer {
     protected $last_align;
 
     /**
-     * Is TRUE when renderer is inside a table.
+     * Is true when renderer is inside a table.
      * @var bool
      */
     protected $in_table;
@@ -200,16 +200,15 @@ class renderer_plugin_latexit extends Doku_Renderer {
 
         if(is_null($this->store)) {
             $this->_initializeStore();
-            echo "aaa";
         }
         
         //initialize variables
-        $this->list_opened = FALSE;
-        $this->recursive = FALSE;
-        $this->in_table = FALSE;
+        $this->list_opened = false;
+        $this->recursive = false;
+        $this->in_table = false;
         $this->last_level_increase = 0;
         $this->rowspan_handler = new RowspanHandler();
-        $this->media = FALSE;
+        $this->media = false;
         $this->label_handler = LabelHandler::getInstance();
         $this->recursion_handler = RecursionHandler::getInstance();
 
@@ -228,7 +227,7 @@ class renderer_plugin_latexit extends Doku_Renderer {
         //export of the main document
         if (!$this->_immersed()) {
             //the parent documented cannot be recursively inserted somewhere
-            $this->recursion_handler->insert(wikifn($ID));
+            $this->recursion_handler->insert(wikiFN($ID));
 
             //prepare ZIP archive (will not be created, if it isn't necessary)
             $zip = new ZipArchive();
@@ -260,7 +259,7 @@ class renderer_plugin_latexit extends Doku_Renderer {
             }
             //if table of contents should be displayed, it prints it
             if ($this->getConf('table_of_content')) {
-                $this->_latexcommand('tableofcontents', NULL, 2);
+                $this->_latexcommand('tableofcontents', null, 2);
             }
         }
     }
@@ -646,7 +645,7 @@ class renderer_plugin_latexit extends Doku_Renderer {
         $this->last_level = $level;
         $this->_indent_list();
         $this->doc .= "  ";
-        $this->_latexcommand('item', NULL, 0);
+        $this->_latexcommand('item', null, 0);
     }
 
     /**
@@ -929,7 +928,7 @@ class renderer_plugin_latexit extends Doku_Renderer {
      * @param string $hash Label of a section
      * @param string $name Text of the original link
      */
-    function locallink($hash, $name = NULL) {
+    function locallink($hash, $name = null) {
         $this->_insertLinkPackages();
         if (!is_null($name)) {
             $this->doc .= $this->_latexSpecialChars($name);
@@ -1029,7 +1028,7 @@ class renderer_plugin_latexit extends Doku_Renderer {
      * @param string $link External link
      * @param string/array $title Title, can be null or array (if it is media)
      */
-    function externallink($link, $title = NULL) {
+    function externallink($link, $title = null) {
         if (!is_array($title)) {
             $title = $this->_latexSpecialChars($title);
         }
@@ -1045,7 +1044,7 @@ class renderer_plugin_latexit extends Doku_Renderer {
      * @param string $wikiName Name of wiki (according to configuration)
      * @param string $wikiUri Text in link after wiki address
      */
-    function interwikilink($link, $title = NULL, $wikiName, $wikiUri) {
+    function interwikilink($link, $title = null, $wikiName, $wikiUri) {
         $url = $this->_resolveInterWiki($wikiName, $wikiUri);
         if (is_null($title)) {
             $name = $wikiUri;
@@ -1061,7 +1060,7 @@ class renderer_plugin_latexit extends Doku_Renderer {
      * @param string $link Link to a file.
      * @param string $title Title of the link, can be image.
      */
-    function filelink($link, $title = NULL) {
+    function filelink($link, $title = null) {
         $this->externallink($link, $title);
     }
 
@@ -1071,7 +1070,7 @@ class renderer_plugin_latexit extends Doku_Renderer {
      * @param string $link Link to a file.
      * @param string $title Title of the link, can be image.
      */
-    function windowssharelink($link, $title = NULL) {
+    function windowssharelink($link, $title = null) {
         $this->externallink($link, $title);
     }
 
@@ -1081,7 +1080,7 @@ class renderer_plugin_latexit extends Doku_Renderer {
      * @param string $address Email address
      * @param string/array $name Name, can be null or array (if it is media)
      */
-    function emaillink($address, $name = NULL) {
+    function emaillink($address, $name = null) {
         if (!is_array($name)) {
             $name = $this->_latexSpecialChars($name);
         }
@@ -1101,7 +1100,7 @@ class renderer_plugin_latexit extends Doku_Renderer {
      * @param string      $cache   We delete cache, so we don't use this param.
      * @param bool        $linking Not used.
      */
-    function internalmedia($src, $title = NULL, $align = NULL, $width = NULL, $height = NULL, $cache = NULL, $linking = NULL) {
+    function internalmedia($src, $title = null, $align = null, $width = null, $height = null, $cache = null, $linking = null) {
         /** @var ZipArchive $zip */
         global $zip;
 
@@ -1126,7 +1125,7 @@ class renderer_plugin_latexit extends Doku_Renderer {
         $exists = file_exists($location);
         if ($exists) {
             //exported file will be ZIP archive
-            $this->media = TRUE;
+            $this->media = true;
             //add media to ZIP archive
             $zip->addFile($location, $media_folder . "/" . $path);
         }
@@ -1152,12 +1151,12 @@ class renderer_plugin_latexit extends Doku_Renderer {
      * @param string|null $cache   We delete cache, so we don't use this param.
      * @param bool|null   $linking Not used.
      */
-    function externalmedia($src, $title = NULL, $align = NULL, $width = NULL, $height = NULL, $cache = NULL, $linking = NULL) {
+    function externalmedia($src, $title = null, $align = null, $width = null, $height = null, $cache = null, $linking = null) {
         global $conf;
         /** @var ZipArchive $zip */
         global $zip;
 
-        $this->media = TRUE;
+        $this->media = true;
         $media_folder = $this->getConf('media_folder');
 
         //get just the name of file without path
@@ -1245,7 +1244,7 @@ class renderer_plugin_latexit extends Doku_Renderer {
      * @param string|null $align
      * @param int         $rowspan
      */
-    function tableheader_open($colspan = 1, $align = NULL, $rowspan = 1) {
+    function tableheader_open($colspan = 1, $align = null, $rowspan = 1) {
         $this->tablecell_open($colspan, $align, $rowspan);
         $this->_open('textbf');
     }
@@ -1264,7 +1263,7 @@ class renderer_plugin_latexit extends Doku_Renderer {
      * @param string $align Sets align of the cell. 
      * @param int $rowspan Sets rows[am of the cell.
      */
-    function tablecell_open($colspan = 1, $align = NULL, $rowspan = 1) {
+    function tablecell_open($colspan = 1, $align = null, $rowspan = 1) {
         if (is_null($align)) {
             $align = $this->getConf('default_table_align');
         } else {
@@ -1322,7 +1321,7 @@ class renderer_plugin_latexit extends Doku_Renderer {
      * @param array $params Array of parameters of the command
      * @param bool $brackets Tells if the brackets should be used.
      */
-    protected function _open($command, $params = NULL, $brackets = true) {
+    protected function _open($command, $params = null, $brackets = true) {
         $this->doc .= "\\" . $command;
         //if params are set, print them all
         if (!is_null($params)) {
@@ -1357,7 +1356,7 @@ class renderer_plugin_latexit extends Doku_Renderer {
      * @param int $newlines How many newlines after the command to insert.
      * @param array $params Array of parameters to be inserted. 
      */
-    protected function _latexcommand($command, $text = NULL, $newlines = 1, $params = NULL) {
+    protected function _latexcommand($command, $text = null, $newlines = 1, $params = null) {
         //if there is no text, there will be no brackets
         if (is_null($text)) {
             $brackets = false;
@@ -1389,7 +1388,7 @@ class renderer_plugin_latexit extends Doku_Renderer {
     protected function _checkMedia() {
         //check
         if (preg_match('#%///MEDIA///#si', $this->doc)) {
-            $this->media = TRUE;
+            $this->media = true;
         }
         //and delete any traces
         $this->_deleteMediaSyntax();
@@ -1424,7 +1423,7 @@ class renderer_plugin_latexit extends Doku_Renderer {
                 $this->doc .= '  ';
             }
         } else {
-            $this->list_opened = TRUE;
+            $this->list_opened = true;
         }
         $this->_indent_list();
         $this->_latexcommand('begin', $command);
@@ -1436,7 +1435,7 @@ class renderer_plugin_latexit extends Doku_Renderer {
      */
     protected function _list_close($command) {
         if ($this->last_level == 1) {
-            $this->list_opened = FALSE;
+            $this->list_opened = false;
         }
         $this->_indent_list();
         $this->_latexcommand('end', $command);
@@ -1606,7 +1605,7 @@ class renderer_plugin_latexit extends Doku_Renderer {
         //generate filename
         $filename = $conf["tmpdir"] . "/output" . time() . ".zip";
         //create ZIP archive
-        if ($zip->open($filename, ZipArchive::CREATE) !== TRUE) {
+        if ($zip->open($filename, ZipArchive::CREATE) !== true) {
             exit("LaTeXit was not able to open <$filename>, check access rights.\n");
         }
     }
@@ -1630,13 +1629,13 @@ class renderer_plugin_latexit extends Doku_Renderer {
         if (!is_null($align)) {
             switch ($align) {
                 case "center":
-                    $this->_latexcommand('centering', NULL, 0);
+                    $this->_latexcommand('centering', null, 0);
                     break;
                 case "left":
-                    $this->_latexcommand('raggedleft', NULL, 0);
+                    $this->_latexcommand('raggedleft', null, 0);
                     break;
                 case "right":
-                    $this->_latexcommand('raggedright', NULL, 0);
+                    $this->_latexcommand('raggedright', null, 0);
                     break;
                 default :
                     break;
@@ -1664,7 +1663,7 @@ class renderer_plugin_latexit extends Doku_Renderer {
      * @param string $type Link type (internal/external/email)
      * @param string $link_original Original link (for internal links it is used as a title)
      */
-    protected function _insertLink($url, $title, $type, $link_original = NULL) {
+    protected function _insertLink($url, $title, $type, $link_original = null) {
         $this->_insertLinkPackages();
 
         if ($type == "email") {
