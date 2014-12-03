@@ -49,6 +49,13 @@ class helper_plugin_latexit extends DokuWiki_Plugin {
     protected $last_header_indent_increase = 0;
 
     /**
+     * Archive object initiated by document start of the renderer
+     *
+     * @var ZipLib
+     */
+    public $zip = null;
+
+    /**
      * Constructor
      */
     public function __construct() {

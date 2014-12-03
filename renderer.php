@@ -181,9 +181,7 @@ class renderer_plugin_latexit extends Doku_Renderer {
      * sets the browser headers of the exported file.
      */
     public function document_start() {
-        //register global variables used for recursive rendering
-        global $zip;
-        //ID stores the current page id with namespaces, required for recursion prevention
+        //ID stores the current page id with namespaces
         global $ID;
 
         if(is_null($this->store)) {
@@ -205,9 +203,8 @@ class renderer_plugin_latexit extends Doku_Renderer {
             //the parent documented cannot be recursively inserted somewhere
             $this->recursion_handler->insert(wikiFN($ID));
 
-            //prepare ZIP archive (will not be created, if it isn't necessary)
-            $zip = new ZipArchive();
-            $this->_prepareZIP();
+            //prepare ZIP archive
+            $this->store->zip = new ZipLib();
 
             // configure language
             $document_lang = $this->getConf('document_lang');
@@ -292,8 +289,6 @@ class renderer_plugin_latexit extends Doku_Renderer {
      * It finalizes the document.
      */
     public function document_end() {
-        /** @var ZipArchive $zip */
-        global $zip;
         global $ID;
 
         //if a media were inserted in a recursively added file, we have to push this information up
@@ -337,15 +332,11 @@ class renderer_plugin_latexit extends Doku_Renderer {
             if($this->media || $hasBibliography) {
                 //file to download will be ZIP archive
 
-                $zipfilename = $zip->filename;
                 if($hasBibliography) {
-                    $zip->addFromString($this->getConf('bibliography_name') . '.bib', $bibliography->getBibliography());
+                    $bibliofilename = $this->getConf('bibliography_name') . '.bib';
+                    $this->store->zip->add_File($bibliography->getBibliography(), $bibliofilename);
                 }
-                $zip->addFromString($latexoutputfilename, $this->doc);
-
-                //zip archive is created when this function is called,
-                //so if no ZIP is needed, nothing is created
-                $zip->close();
+                $this->store->zip->add_File($this->doc, $latexoutputfilename);
 
                 $headers = array(
                     'Content-Type' => 'application/zip',
@@ -353,10 +344,8 @@ class renderer_plugin_latexit extends Doku_Renderer {
                 );
 
                 // Replace latex file by zip file
-                $this->doc = file_get_contents($zipfilename);
+                $this->doc = $this->store->zip->get_file();
 
-                //delete temporary zip file
-                unlink($zipfilename);
             } else {
                 //file to download will be ordinary LaTeX file
 
@@ -1152,9 +1141,6 @@ class renderer_plugin_latexit extends Doku_Renderer {
      * @param bool        $linking Not used.
      */
     public function internalmedia($src, $title = null, $align = null, $width = null, $height = null, $cache = null, $linking = null) {
-        /** @var ZipArchive $zip */
-        global $zip;
-
         $media_folder = $this->getConf('media_folder');
 
         if(strpos($src, ':') !== false) {
@@ -1178,7 +1164,7 @@ class renderer_plugin_latexit extends Doku_Renderer {
             //exported file will be ZIP archive
             $this->media = true;
             //add media to ZIP archive
-            $zip->addFile($location, $media_folder . "/" . $path);
+            $this->store->zip->add_File(io_readfile($location, false), $media_folder . '/' . $path, 0);
         }
 
         $mime = mimetype($src);
@@ -1203,21 +1189,17 @@ class renderer_plugin_latexit extends Doku_Renderer {
      * @param bool|null   $linking Not used.
      */
     public function externalmedia($src, $title = null, $align = null, $width = null, $height = null, $cache = null, $linking = null) {
-        global $conf;
-        /** @var ZipArchive $zip */
-        global $zip;
-
         $this->media = true;
         $media_folder = $this->getConf('media_folder');
 
         //get just the name of file without path
         $filename = basename($src);
-        //download the file to the DokuWiki TEMP folder
-        $location = $conf["tmpdir"] . "/" . $filename;
-        file_put_contents($location, file_get_contents($src));
-        //add file to the ZIP archive
+
+        //download the file and add file to the ZIP archive
         $path = $media_folder . "/" . $filename;
-        $zip->addFile($location, $path);
+        $http = new HTTPClient();
+        $this->store->zip->add_File($http->get($src), $path, 0);
+
 
         $mime = mimetype($filename);
 
@@ -1626,25 +1608,6 @@ class renderer_plugin_latexit extends Doku_Renderer {
         $link = str_replace("%", "\%", $link);
         $link = str_replace("&", "\&", $link);
         return $link;
-    }
-
-    /**
-     * Prepares the ZIP archive.
-     *
-     * @global string     $conf global dokuwiki configuration
-     * @global ZipArchive $zip  pointer to our zip archive
-     */
-    protected function _prepareZIP() {
-        global $conf;
-        /** @var ZipArchive $zip */
-        global $zip;
-
-        //generate filename
-        $filename = $conf["tmpdir"] . "/output" . time() . ".zip";
-        //create ZIP archive
-        if($zip->open($filename, ZipArchive::CREATE) !== true) {
-            exit("LaTeXit was not able to open <$filename>, check access rights.\n");
-        }
     }
 
     /**
