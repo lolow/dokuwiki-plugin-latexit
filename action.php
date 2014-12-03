@@ -72,9 +72,52 @@ class action_plugin_latexit extends DokuWiki_Action_Plugin {
      * @param array $param event parameters
      */
     public function _purgeCache(Doku_Event $event, $param) {
-        if ($event->data->mode == 'latexit') {
-            //touching main config will make all cache invalid
-            touch(DOKU_INC . 'conf/local.php');
+
+        /** @var cache_parser $cache */
+        $cache = &$event->data;
+
+        if ($cache->mode == 'latexit') {
+            /** @var cache_renderer $cache */
+
+            // use per header indent level a separated cache file of the rendered latexit page
+            /** @var helper_plugin_latexit $store */
+            $store = $this->loadHelper('latexit');
+            $headerindent = $store->getHeaderIndent();
+
+            if($headerindent > 0) {
+                $cache->key .= "#indent" . $headerindent;
+                $cache->cache = getCacheName($cache->key, $cache->ext);
+            }
+
+            /**
+             * @deprecated 3-12-2014 since development version of this date DokuWiki add pageid to the renderer for not
+             *                       default exports. In older version this workaround is required.
+             */
+            $cachepageid = $cache->page;
+            if(!$cachepageid) {
+                $minimumfilename = wikiFN('');
+                $posext = strrpos($minimumfilename, '.');
+                $lenext = strlen(substr($minimumfilename, $posext));
+                $cachepageid = substr($cache->file, $posext, -$lenext);
+                $cachepageid = utf8_decodeFN($cachepageid);
+                $cachepageid = str_replace('/', ':', $cachepageid);
+            }
+
+            //add included pages to dependencies
+            $depends = p_get_metadata($cachepageid, 'plugin_latexit');
+
+            if (!is_array($depends)) return; // nothing to do for us
+
+            if (is_array($depends['insertedpages'])) {
+                foreach ($depends['insertedpages'] as $pageid => $exists) {
+                    if (!$exists) continue;
+
+                    $file = wikiFN($pageid);
+                    if (!in_array($file, $cache->depends['files'])) {
+                        $cache->depends['files'][] = $file;
+                    }
+                }
+            }
         }
     }
 

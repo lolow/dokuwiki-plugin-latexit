@@ -27,11 +27,35 @@ class helper_plugin_latexit extends DokuWiki_Plugin {
     protected $preamble;
 
     /**
+     * Stores the information about the level of recursion.
+     * It stores the depth of current recursively added file
+     *
+     * @var int
+     */
+    protected $recursion_depth;
+
+    /**
+     * Main file starts at indent of zero, recursive inserted files can increase the indent level of its headers
+     *
+     * @var int
+     */
+    protected $headers_indent;
+
+    /**
+     * Stores the information about the headers indent increase in last recursive insertion.
+     *
+     * @var int
+     */
+    protected $last_header_indent_increase = 0;
+
+    /**
      * Constructor
      */
     public function __construct(){
         $this->packages = array();
         $this->preamble = array();
+        $this->recursion_depth = 0;
+        $this->headers_indent = 0;
     }
 
     /**
@@ -111,5 +135,66 @@ class helper_plugin_latexit extends DokuWiki_Plugin {
         //replace entities in TEXT
         $text = preg_replace('#///ENTITYSTART///(.*?)///ENTITYEND///#si', $entity[1], $text);
         return $text;
+    }
+
+    /**
+     * Increases header indent with a given number.
+     *
+     * @param int $increment Size of the increase.
+     */
+    public function increaseHeaderIndent($increment) {
+        $this->last_header_indent_increase = $increment;
+        $this->headers_indent += $increment;
+    }
+
+    /**
+     * Decrease header indent to previous level.
+     */
+    public function decreaseHeaderIndent() {
+        $this->headers_indent -= $this->last_header_indent_increase;
+    }
+
+    /**
+     * Return current header indent
+     *
+     * @return int
+     */
+    public function getHeaderIndent() {
+        return $this->headers_indent;
+    }
+
+    /**
+     * Increase recursion level by one
+     */
+    public function incrementRecursionDepth() {
+        $this->recursion_depth ++;
+    }
+
+    /**
+     * Decrease recursion level by one
+     */
+    public function decrementRecursionDepth() {
+        $this->recursion_depth --;
+    }
+
+    /**
+     * Return current recursion level
+     *
+     * @return int
+     */
+    public function getRecursionDepth() {
+        return $this->recursion_depth;
+    }
+
+    /**
+     * This function finds out, if the current renderer is immersed in recursion.
+     *
+     * @return boolean Is immersed in recursion?
+     */
+    public function isImmersed() {
+        if ($this->recursion_depth > 1) {
+            return true;
+        }
+        return false;
     }
 }

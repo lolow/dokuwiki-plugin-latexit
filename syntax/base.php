@@ -90,11 +90,19 @@ class syntax_plugin_latexit_base extends DokuWiki_Syntax_Plugin {
             //set the next link to be added recursively
 
             //there might be more plugins rendering latex and calling this functions could cause an error
-            if(method_exists($renderer, '_setRecursive')) {
+            if(method_exists($renderer, 'markNextInternallinkforInclusion')) {
                 /** @var renderer_plugin_latexit $renderer */
-                $renderer->_setRecursive(true);
-                $renderer->_increaseLevel($level - 1);
+                $renderer->markNextInternallinkforInclusion();
+                $renderer->increaseHeaderIndent($level - 1);
             }
+
+            return true;
+
+        } elseif($mode == 'metadata') {
+            //store data for cache expiring check
+            /** @var Doku_Renderer_metadata $renderer */
+
+            //files for cache dependency are added in next internallink
 
             return true;
         }

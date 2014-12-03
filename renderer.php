@@ -47,29 +47,10 @@ class renderer_plugin_latexit extends Doku_Renderer {
     protected $list_opened;
 
     /**
-     * Stores the information about the level of recursion.
-     * It stores the depth of current recusively added file.
-     * @var int
-     */
-    protected $recursion_level;
-
-    /**
-     * Used in recursively inserted files, stores information about headers level.
-     * @var int
-     */
-    protected $headers_level;
-
-    /**
      * Is true when recursive inserting should be used.
      * @var bool
      */
     protected $recursive;
-
-    /**
-     * Stores the information about the headers level increase in last recursive insertion.
-     * @var int
-     */
-    protected $last_level_increase;
 
     /**
      * Stores the information about the number of cells found in a table row.
@@ -132,11 +113,6 @@ class renderer_plugin_latexit extends Doku_Renderer {
     protected $recursion_handler;
 
     /**
-     * @var helper_plugin_zotero_bibliography
-     */
-    protected $bibliography;
-
-    /**
      * Constructor
      *
      * Initializes the storage helper
@@ -171,16 +147,18 @@ class renderer_plugin_latexit extends Doku_Renderer {
     }
 
     /**
-     * Allow overwriting options from within the document
+     * Read first config settings as set within the document
      *
-     * @param string $setting
-     * @param bool   $notset
+     * @param string $setting the setting to access
+     * @param mixed  $notset  what to return if the setting is not available
      * @return mixed
      */
     function getConf($setting, $notset = false) {
         global $ID;
         $opts = p_get_metadata($ID, 'plugin_latexit');
-        if($opts && isset($opts[$setting])) return $opts[$setting];
+        if($opts && isset($opts[$setting])) {
+            return $opts[$setting];
+        }
 
         return parent::getConf($setting, $notset);
     }
@@ -192,8 +170,6 @@ class renderer_plugin_latexit extends Doku_Renderer {
      */
     function document_start() {
         //register global variables used for recursive rendering
-        global $latexit_level;
-        global $latexit_headers;
         global $zip;
         //ID stores the current page id with namespaces, required for recursion prevention
         global $ID;
@@ -203,29 +179,17 @@ class renderer_plugin_latexit extends Doku_Renderer {
         }
         
         //initialize variables
+        $this->store->incrementRecursionDepth();
         $this->list_opened = false;
         $this->recursive = false;
         $this->in_table = false;
-        $this->last_level_increase = 0;
         $this->rowspan_handler = new RowspanHandler();
         $this->media = false;
         $this->label_handler = LabelHandler::getInstance();
         $this->recursion_handler = RecursionHandler::getInstance();
 
-        //is this recursive export calling on a subpage?
-        if (!isset($latexit_level) || is_null($latexit_level)) {
-            $this->recursion_level = 0;
-        } else {
-            $this->recursion_level = $latexit_level;
-        }
-        if (!isset($latexit_headers) || is_null($latexit_headers)) {
-            $this->headers_level = 0;
-        } else {
-            $this->headers_level = $latexit_headers;
-        }
-
         //export of the main document
-        if (!$this->_immersed()) {
+        if (!$this->store->isImmersed()) {
             //the parent documented cannot be recursively inserted somewhere
             $this->recursion_handler->insert(wikiFN($ID));
 
@@ -276,7 +240,8 @@ class renderer_plugin_latexit extends Doku_Renderer {
         $params = array(
             $this->getConf('paper_size'),
             $this->getConf('output_format'),
-            $this->getConf('font_size') . 'pt',);
+            $this->getConf('font_size') . 'pt'
+        );
         if ($this->getConf('landscape')) {
             $params[] = 'landscape';
         }
@@ -314,20 +279,30 @@ class renderer_plugin_latexit extends Doku_Renderer {
     /**
      * function is called, when a document ends its rendering to finish the document
      * It finalizes the document.
-     *
      */
     function document_end() {
         /** @var ZipArchive $zip */
         global $zip;
+        global $ID;
 
         //if a media were inserted in a recursively added file, we have to push this information up
         $this->_checkMedia();
 
-        //this is MAIN PAGE of exported file, we can finalize document
-        if (!$this->_immersed()) {
+        if($this->store->isImmersed()) {
+            //this is RECURSIVELY added file
+            //signal to the upper document, that we inserted media to ZIP archive
+            if($this->media) {
+                $this->doc .= '%///MEDIA///';
+            }
+
+        } else {
+            //this is MAIN PAGE of exported file, we can finalize document
+
             $this->_newline(2);
 
-            $hasBibliography = $this->bibliography && !$this->bibliography->isEmpty();
+            /** @var helper_plugin_zotero_bibliography $bibliography */
+            $bibliography = plugin_load('helper', 'zotero_bibliography');
+            $hasBibliography = $bibliography && !$bibliography->isEmpty();
 
             if ($hasBibliography) {
                 $this->_latexcommand('bibliographystyle', $this->getConf('bibliography_style'));
@@ -347,47 +322,52 @@ class renderer_plugin_latexit extends Doku_Renderer {
             $this->_fixImageRef();
 
 
-            $output = "output" . time() . ".latex";
+            $latexoutputfilename = 'output' . time() . '.latex';
 
-            //file to download will be ZIP archive
             if ($this->media || $hasBibliography) {
-                $filename = $zip->filename;
+                //file to download will be ZIP archive
+
+                $zipfilename = $zip->filename;
                 if ($hasBibliography) {
-                    $zip->addFromString($this->getConf('bibliography_name') . '.bib', $this->bibliography->getBibliography());
+                    $zip->addFromString($this->getConf('bibliography_name') . '.bib', $bibliography->getBibliography());
                 }
-                $zip->addFromString($output, $this->doc);
+                $zip->addFromString($latexoutputfilename, $this->doc);
+
                 //zip archive is created when this function is called,
                 //so if no ZIP is needed, nothing is created
                 $zip->close();
 
-                header("Content-type: application/zip");
-                header("Content-Disposition: attachment; filename=output" . time() . ".zip");
-                header("Content-length: " . filesize($filename));
-                header("Pragma: no-cache");
-                header("Expires: 0");
-                readfile($filename);
+                $headers = array(
+                    'Content-Type'          => 'application/zip',
+                    'Content-Disposition'   => 'attachment; filename=output' . time() . '.zip'
+                );
+
+                // Replace latex file by zip file
+                $this->doc = file_get_contents($zipfilename);
+
                 //delete temporary zip file
-                unlink($filename);
-            }
-            //file to download will be ordinary LaTeX file
-            else {
+                unlink($zipfilename);
+            } else {
+                //file to download will be ordinary LaTeX file
+
                 //set the headers, so the browsers knows, this is not the HTML file
-                header('Content-Type: application/x-latex');
-                header("Content-Disposition: attachment; filename=$output;");
+                $headers = array(
+                    'Content-Type'          => 'application/x-latex',
+                    'Content-Disposition'   => "attachment; filename=$latexoutputfilename;",
+                );
             }
+
+            // store the content type headers in metadata
+            p_set_metadata($ID, array('format' => array('latexit' => $headers)));
         }
-        //this is RECURSIVELY added file    
-        else {
-            //signal to the upper document, that we inserted media to ZIP archive
-            if ($this->media) {
-                $this->doc .= '%///MEDIA///';
-            }
-        }
+
+        $this->store->decrementRecursionDepth();
     }
 
     /**
      * Function is called, when renderer finds a new header.
      * It calls the LaTeX command for an appropriate level.
+     *
      * @param string $text Text of the header
      * @param int $level Level of the header.
      * @param int $pos Not used in LaTeX
@@ -408,10 +388,9 @@ class renderer_plugin_latexit extends Doku_Renderer {
         }
         array_push($levels, 'section', 'subsection', 'subsubsection', 'paragraph', 'subparagraph');
 
-        if ($this->_immersed()) {
-            //when document is recursively inserted, it will continue from previous headers level
-            $level += $this->headers_level;
-        }
+        //when document is recursively inserted, it will continue from the requested indented header level
+        $level += $this->store->getHeaderIndent();
+
         $this->_newline(2);
 
         //the array of levels is indexed from 0
@@ -434,9 +413,10 @@ class renderer_plugin_latexit extends Doku_Renderer {
     }
 
     /**
-     * Basic funcion called, when a text not from DokuWiki syntax is read
+     * Basic function called, when a text not from DokuWiki syntax is read
      * It adds the data to the document, potentionally dangerous characters for
      * LaTeX are escaped or removed.
+     *
      * @param string $text Text to be inserted.
      */
     function cdata($text) {
@@ -950,19 +930,14 @@ class renderer_plugin_latexit extends Doku_Renderer {
      * If you want to have a link recursively inserted, add ~~RECURSIVE~~ just before it.
      * The count of ~ means the same as = for headers. It will determine the 
      * level of first header used in recursively inserted text.
+     *
      * @param string $link Internal link (can be without proper namespace)
      * @param string/array $title Title, can be null or array (if it is media)
      */
-    function internallink($link, $title = NULL) {
+    function internallink($link, $title = null) {
         //register globals
         global $ID; //in this global var DokuWiki stores the current page id with namespaces
-        global $latexit_level;
-        global $latexit_headers;
 
-        //escape link title
-        if (!is_array($title)) {
-            $title = $this->_latexSpecialChars($title);
-        }
         $link_original = $link;
 
         //get current namespace from current page
@@ -971,55 +946,102 @@ class renderer_plugin_latexit extends Doku_Renderer {
         //$exists stores information, if the page exists.
         resolve_pageid($current_namespace, $link, $exists);
 
-        //if the page does not exist, just insert it as common text
-        if (!$exists) {
-            $this->doc .= $title;
-            return;
-        }
-
-        $params = '';
-        $absoluteURL = true;
-        //get the whole URL
-        $url = wl($link, $params, $absoluteURL);
-        $url = $this->_secureLink($url);
         if ($this->recursive) {
-            //check if it can continue with recursive inserting of this page
-            if ($this->recursion_handler->disallow(wikifn($link))) {
-                $this->_newline(2);
-                //warn the user about unending recursion
-                $this->doc .= "%!!! RECURSION LOOP HAS BEEN PREVENTED !!!";
-                $this->_newline(2);
-            } else {
-                //insert this page to RecursionHandler
-                $this->recursion_handler->insert(wikifn($link));
-                //the level of recursion is increasing
-                $latexit_level = $this->recursion_level + 1;
-                $latexit_headers = $this->headers_level;
+            $this->insertWikipage($link, $exists);
 
-                //start parsing linked page - call the latexit plugin again
-                $data = p_cached_output(wikifn($link), 'latexit');
+            //add info for cache expiring to metadata
+            // TODO this metadata is generated at latex rendering, is that sometimes too late? And is it stored always ok?
+            @list($page) = explode('#', $link, 2);
+            $pluginmetadata = p_get_metadata($ID, 'plugin_latexit', METADATA_RENDER_USING_SIMPLE_CACHE);
+            $pluginmetadata['insertedpages'][$page] = $exists;
 
-                $this->_newline(2);
-                //insert comment to LaTeX
-                $this->doc .= "%RECURSIVELY INSERTED FILE START";
-                $this->_newline(2);
-                //insert parsed data
-                $this->doc .= $data;
-                $this->_newline(2);
-                //insert comment to LaTeX
-                $this->doc .= "%RECURSIVELY INSERTED FILE END";
-                $this->_newline(2);
-                //get headers level to previous level
-                $this->headers_level -= $this->last_level_increase;
-                //remove this page from RecursionHandler
-                $this->recursion_handler->remove(wikifn($link));
+            // does this update the metadata lastmod date too early?
+            p_set_metadata($ID, array('plugin_latexit' => array('insertedpages' => $pluginmetadata['insertedpages'])));
+
+        } else {
+            //if the page does not exist, just insert it as common text
+            if (!$exists) {
+                $this->cdata($title);
+                return;
             }
-        }
-        //handle internal links as they were external
-        else {
+            //handle internal links as they were external
+            $params = '';
+            $absoluteURL = true;
+            //get the whole URL
+            $url = wl($link, $params, $absoluteURL);
+            $url = $this->_secureLink($url);
+
+            //escape link title
+            if (!is_array($title)) {
+                $title = $this->_latexSpecialChars($title);
+            }
+
             $this->_insertLink($url, $title, "internal", $link_original);
         }
-        $this->recursive = FALSE;
+
+        $this->recursive = false;
+    }
+
+
+    /**
+     * Set that the next link will be inserted to the file recursively.
+     */
+    public function markNextInternallinkforInclusion() {
+        $this->recursive = true;
+    }
+
+    /**
+     * Increases header indent with a given number.
+     *
+     * @param int $increment Size of the increase.
+     */
+    public function increaseHeaderIndent($increment) {
+        $this->store->increaseHeaderIndent($increment);
+    }
+
+    /**
+     * Insert a wiki page converted to latex commands into document
+     *
+     * @param string $link
+     * @param bool   $exists
+     */
+    public function insertWikipage($link, $exists) {
+        if(!$exists) {
+            $this->_newline(2);
+            $this->cdata("% PAGE DON'T EXISTS");
+            $this->_newline(2);
+
+        //check if it can continue with recursive inserting of this page
+        } elseif($this->recursion_handler->disallow(wikiFN($link))) {
+            //warn the user about unending recursion
+            $this->_newline(2);
+            $this->cdata("%!!! RECURSION LOOP HAS BEEN PREVENTED !!!");
+            $this->_newline(2);
+
+        } else {
+            //insert this page to RecursionHandler
+            $this->recursion_handler->insert(wikiFN($link));
+
+            // start parsing linked page - call the latexit plugin again
+            $parsedpage = p_cached_output(wikiFN($link), 'latexit', $link);
+
+            $this->_newline(2);
+            //insert comment to LaTeX
+            $this->cdata("%RECURSIVELY INSERTED FILE START");
+            $this->_newline(2);
+            //insert parsed data
+            $this->doc .= $parsedpage;
+            $this->_newline(2);
+            //insert comment to LaTeX
+            $this->cdata("%RECURSIVELY INSERTED FILE END");
+            $this->_newline(2);
+
+            //remove this page from RecursionHandler
+            $this->recursion_handler->remove(wikiFN($link));
+        }
+
+        //restore headers indent level to previous level
+        $this->store->decreaseHeaderIndent();
     }
 
     /**
@@ -1496,17 +1518,6 @@ class renderer_plugin_latexit extends Doku_Renderer {
     }
 
     /**
-     * This function finds out, if the current renderer is immersed in recursion.
-     * @return boolean Is immersed in recursion?
-     */
-    protected function _immersed() {
-        if ($this->recursion_level > 0) {
-            return true;
-        }
-        return false;
-    }
-
-    /**
      * Escapes LaTeX special chars.
      * Entities are in the middle of special tags so eg. MathJax texts are not escaped, but entities are.
      * @param string $text Text to be escaped.
@@ -1529,23 +1540,6 @@ class renderer_plugin_latexit extends Doku_Renderer {
     protected function _fixImageRef() {
         $this->doc = str_replace('[h!]{\centering}', '[!ht]{\centering}', $this->doc);
         $this->doc = str_replace('\\ref{', '\autoref{', $this->doc);
-    }
-
-    /**
-     * Function sets, if the next link will be inserted to the file recursively.
-     * @param bool $recursive Will next link be added recursively?
-     */
-    public function _setRecursive($recursive) {
-        $this->recursive = $recursive;
-    }
-
-    /**
-     * Function increases header level of a given number.
-     * @param int $level Size of the increase.
-     */
-    public function _increaseLevel($level) {
-        $this->last_level_increase = $level;
-        $this->headers_level += $level;
     }
 
     /**
