@@ -1,7 +1,7 @@
 <?php
 
 /**
- * Package is an entity representing a LaTeX package with its parameters.
+ * LatexPackage is an entity representing a LaTeX package with its parameters.
  *
  * @license GPL 2 http://www.gnu.org/licenses/gpl-2.0.html
  * @author  Adam Kučera <adam.kucera@wrent.cz>
@@ -10,7 +10,7 @@
 /**
  * Class representing a LaTeX package.
  */
-class Package {
+class LatexPackage {
 
     /**
      * Name of the LaTeX package.
@@ -32,7 +32,7 @@ class Package {
     protected $commands;
 
     /**
-     * Creates an Package object.
+     * Creates an LatexPackage object.
      *
      * @param string $name Name of the package
      */
@@ -130,10 +130,10 @@ class Package {
     }
 
     /**
-     * Custom comparator to sort Packages
+     * Custom comparator to sort LatexPackages
      *
-     * @param Package $a
-     * @param Package $b
+     * @param LatexPackage $a
+     * @param LatexPackage $b
      * @return int
      */
     static function cmpPackages($a, $b) {

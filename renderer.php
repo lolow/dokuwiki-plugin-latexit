@@ -211,12 +211,12 @@ class renderer_plugin_latexit extends Doku_Renderer {
 
             // configure language
             $document_lang = $this->getConf('document_lang');
-            $pckg = new Package('babel');
+            $pckg = new LatexPackage('babel');
             $pckg->addParameter($document_lang);
             $this->store->addPackage($pckg);
 
             // encoding is always UTF-8
-            $pckg = new Package('inputenc');
+            $pckg = new LatexPackage('inputenc');
             $pckg->addParameter('utf8x');
             $this->store->addPackage($pckg);
 
@@ -266,7 +266,7 @@ class renderer_plugin_latexit extends Doku_Renderer {
         // print the packages
         $packages = $this->store->getPackages();
         foreach($packages as $package) {
-            /** @var  Package $package */
+            /** @var  LatexPackage $package */
             $this->doc .= $package->printUsePackage();
         }
 
@@ -384,7 +384,7 @@ class renderer_plugin_latexit extends Doku_Renderer {
      */
     public function header($text, $level, $pos) {
         //package hyperref will enable PDF bookmarks
-        $package = new Package('hyperref');
+        $package = new LatexPackage('hyperref');
         $package->addParameter('unicode');
         $this->store->addPackage($package);
 
@@ -531,7 +531,7 @@ class renderer_plugin_latexit extends Doku_Renderer {
      * It adds needed package and calls command for subscript in LaTeX Document.
      */
     public function subscript_open() {
-        $package = new Package('fixltx2e');
+        $package = new LatexPackage('fixltx2e');
         $this->store->addPackage($package);
         $this->_open('textsubscript');
     }
@@ -548,7 +548,7 @@ class renderer_plugin_latexit extends Doku_Renderer {
      * It adds needed package and calls command for superscript in LaTeX Document.
      */
     public function superscript_open() {
-        $package = new Package('fixltx2e');
+        $package = new LatexPackage('fixltx2e');
         $this->store->addPackage($package);
         $this->_open('textsuperscript');
     }
@@ -565,7 +565,7 @@ class renderer_plugin_latexit extends Doku_Renderer {
      * It adds needed package and calls command for deleted text in LaTeX Document.
      */
     public function deleted_open() {
-        $package = new Package('ulem');
+        $package = new LatexPackage('ulem');
         $package->addParameter('normalem');
         $this->store->addPackage($package);
         $this->_open('sout');
@@ -744,7 +744,7 @@ class renderer_plugin_latexit extends Doku_Renderer {
      * @param string $file The code can be inserted to DokuWiki as a file.
      */
     public function code($text, $lang = null, $file = null) {
-        $pckg = new Package('listings');
+        $pckg = new LatexPackage('listings');
         $this->store->addPackage($pckg);
 
         //start code block
@@ -794,7 +794,7 @@ class renderer_plugin_latexit extends Doku_Renderer {
      */
     public function smiley($smiley) {
         if($smiley == 'FIXME' || $smiley == 'DELETEME') {
-            $pckg = new Package('soul');
+            $pckg = new LatexPackage('soul');
             $this->store->addPackage($pckg);
             $this->doc .= $smiley;
         } else {
@@ -1241,7 +1241,7 @@ class renderer_plugin_latexit extends Doku_Renderer {
 
         //set environment to tables
         $this->in_table = true;
-        $pckg = new Package('longtable');
+        $pckg = new LatexPackage('longtable');
         $this->store->addPackage($pckg);
 
         //print the header
@@ -1342,7 +1342,7 @@ class renderer_plugin_latexit extends Doku_Renderer {
         }
         //start a new rowspan using RowspanHandler
         if($rowspan != 1) {
-            $pckg = new Package('multirow');
+            $pckg = new LatexPackage('multirow');
             $this->store->addPackage($pckg);
             $this->rowspan_handler->insertRowspan($rowspan - 1, $this->cells_count);
             $this->doc .= "\\multirow{" . $rowspan . "}{*}{";
@@ -1462,7 +1462,7 @@ class renderer_plugin_latexit extends Doku_Renderer {
      * Function inserts package used for hyperlinks.
      */
     protected function _insertLinkPackages() {
-        $package = new Package('hyperref');
+        $package = new LatexPackage('hyperref');
         //fixes the encoding warning
         $package->addParameter('unicode');
         $this->store->addPackage($package);
@@ -1655,7 +1655,7 @@ class renderer_plugin_latexit extends Doku_Renderer {
      * @param string $media_folder path to the media folder.
      */
     protected function _insertImage($path, $align, $media_folder) {
-        $pckg = new Package('graphicx');
+        $pckg = new LatexPackage('graphicx');
         $pckg->addCommand('\\graphicspath{{' . $media_folder . '/}}');
         $this->store->addPackage($pckg);
 

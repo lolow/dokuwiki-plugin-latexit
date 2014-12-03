@@ -61,17 +61,23 @@ class helper_plugin_latexit extends DokuWiki_Plugin {
     /**
      * Add a new entry to the preamble
      *
-     * @param array|string $data Either the parameters for renderer_plugin_latexit::_c() or a string to be used as is
+     * @param array|string $data Either the parameters for renderer_plugin_latexit::_latexcommand() or a string to be used as is
      */
     public function addPreamble($data) {
         // make sure data contains the right info
         if(is_array($data)) {
-            if(!isset($data[0])) trigger_error('No command given', E_USER_ERROR); // command
+            // command
+            if(!isset($data[0])) {
+                trigger_error('No command given', E_USER_ERROR);
+            }
+
             if(!isset($data[1])) $data[1] = null; // text
             if(!isset($data[2])) $data[2] = 1; // newlines
             if(!isset($data[3])) $data[3] = null; // params
         } else {
-            if(substr($data, -1) != "\n") $data .= "\n";
+            if(substr($data, -1) != "\n") {
+                $data .= "\n";
+            }
         }
 
         $this->preamble[] = $data;
@@ -89,11 +95,13 @@ class helper_plugin_latexit extends DokuWiki_Plugin {
     /**
      * Add a package to the list of document packages
      *
-     * @param Package $package
+     * @param LatexPackage $package
      */
-    public function addPackage(Package $package) {
+    public function addPackage(LatexPackage $package) {
         $name = $package->getName();
-        if(isset($this->packages[$name])) return;
+        if(isset($this->packages[$name])) {
+            return;
+        }
         $this->packages[$name] = $package;
     }
 
@@ -102,7 +110,7 @@ class helper_plugin_latexit extends DokuWiki_Plugin {
      */
     public function getPackages() {
         // sort the packages
-        usort($this->packages, array('Package', 'cmpPackages'));
+        usort($this->packages, array('LatexPackage', 'cmpPackages'));
         return $this->packages;
     }
 
@@ -112,7 +120,9 @@ class helper_plugin_latexit extends DokuWiki_Plugin {
      * @param string $name
      */
     public function removePackage($name) {
-        if(isset($this->packages[$name])) unset($this->packages[$name]);
+        if(isset($this->packages[$name])) {
+            unset($this->packages[$name]);
+        }
     }
 
     /**
