@@ -22,6 +22,13 @@ class renderer_plugin_latexit_test extends DokuWikiTest {
     protected $r;
 
     /**
+     * stores temporary the doc, for checking later
+     *
+     * @var string
+     */
+    protected $tempdoc;
+
+    /**
      * Enable additional plugins if available
      */
     public function __construct() {
@@ -40,6 +47,7 @@ class renderer_plugin_latexit_test extends DokuWikiTest {
         //this function inicializes all variables
         $this->r->document_start();
         //but we dont want to have the header of document in tests
+        $this->tempdoc = $this->r->doc;
         $this->clearDoc();
     }
 
@@ -77,9 +85,13 @@ class renderer_plugin_latexit_test extends DokuWikiTest {
      * Testing document_start method.
      */
     public function test_document_start() {
-        $this->r->document_start();
         $string = "\begin{document}\n\n";
+        $this->assertEquals($string, $this->tempdoc);
 
+        // Assumption is that document start is called once at start of each wikipage in the render job.
+        // So a second call means that we are in an inserted page, which don't require begin document command
+        $this->r->document_start();
+        $string = '';
         $this->assertEquals($string, $this->r->doc);
     }
 

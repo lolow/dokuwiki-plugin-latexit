@@ -22,7 +22,7 @@ class package_plugin_latexit_test extends DokuWikiTest {
      * Testing getName method.
      */
     public function test_getName() {
-        $p = new Package("balik");
+        $p = new LatexPackage("balik");
         $this->assertEquals("balik", $p->getName());
     }
 
@@ -30,7 +30,7 @@ class package_plugin_latexit_test extends DokuWikiTest {
      * Testing printParameters and addParameter methods.
      */
     public function test_printParameters() {
-        $p = new Package("balik");
+        $p = new LatexPackage("balik");
         $this->assertEquals("", $p->printParameters());
         $p->addParameter("param");
         $this->assertEquals("[param]", $p->printParameters());
@@ -42,7 +42,7 @@ class package_plugin_latexit_test extends DokuWikiTest {
      * Testing printCommands and addCommand methods.
      */
     public function test_printCommands() {
-        $p = new Package("balik");
+        $p = new LatexPackage("balik");
         $this->assertEquals("", $p->printCommands());
         $p->addCommand("\use{aaa}");
         $this->assertEquals("\use{aaa}\n", $p->printCommands());
