@@ -619,9 +619,11 @@ class renderer_plugin_latexit extends Doku_Renderer {
     /**
      * function is called, when renderer finds start of a list item
      * It calls command for a list item in latex, even with right indention
+     *
      * @param int $level Level of indention.
+     * @param bool $node true when a node; false when a leaf
      */
-    function listitem_open($level) {
+    function listitem_open($level, $node = false) {
         $this->last_level = $level;
         $this->_indent_list();
         $this->doc .= "  ";
