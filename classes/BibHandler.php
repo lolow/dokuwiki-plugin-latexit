@@ -1,5 +1,4 @@
 <?php
-
 /**
  * Bibliography handler is responsible for getting the bibliography info from Zotero portal.
  *

@@ -3,11 +3,11 @@
 /**
  * DokuWiki Plugin latexit (Helper Component)
  *
- * @license GPL 2 http://www.gnu.org/licenses/gpl-2.0.html
+ * @license    GPL 2 http://www.gnu.org/licenses/gpl-2.0.html
  * @author     Andreas Gohr <gohr@cosmocode.de>
  */
 // must be run within Dokuwiki
-if (!defined('DOKU_INC'))
+if(!defined('DOKU_INC'))
     die();
 
 /**
@@ -51,7 +51,7 @@ class helper_plugin_latexit extends DokuWiki_Plugin {
     /**
      * Constructor
      */
-    public function __construct(){
+    public function __construct() {
         $this->packages = array();
         $this->preamble = array();
         $this->recursion_depth = 0;
@@ -63,15 +63,15 @@ class helper_plugin_latexit extends DokuWiki_Plugin {
      *
      * @param array|string $data Either the parameters for renderer_plugin_latexit::_c() or a string to be used as is
      */
-    public function addPreamble($data){
+    public function addPreamble($data) {
         // make sure data contains the right info
-        if(is_array($data)){
+        if(is_array($data)) {
             if(!isset($data[0])) trigger_error('No command given', E_USER_ERROR); // command
             if(!isset($data[1])) $data[1] = null; // text
             if(!isset($data[2])) $data[2] = 1; // newlines
             if(!isset($data[3])) $data[3] = null; // params
         } else {
-            if(substr($data,-1) != "\n") $data .= "\n";
+            if(substr($data, -1) != "\n") $data .= "\n";
         }
 
         $this->preamble[] = $data;
@@ -91,7 +91,7 @@ class helper_plugin_latexit extends DokuWiki_Plugin {
      *
      * @param Package $package
      */
-    public function addPackage(Package $package){
+    public function addPackage(Package $package) {
         $name = $package->getName();
         if(isset($this->packages[$name])) return;
         $this->packages[$name] = $package;
@@ -115,10 +115,10 @@ class helper_plugin_latexit extends DokuWiki_Plugin {
         if(isset($this->packages[$name])) unset($this->packages[$name]);
     }
 
-
     /**
      * Escapes LaTeX special chars.
      * Entities are in the middle of special tags so eg. MathJax texts are not escaped, but entities are.
+     *
      * @param string $text Text to be escaped.
      * @return string Escaped text.
      */
@@ -129,7 +129,8 @@ class helper_plugin_latexit extends DokuWiki_Plugin {
         $text = str_replace(
             array('\\', '{', '}', '&', '%', '$', '#', '_', '~', '^', '<', '>'),
             array('\textbackslash', '\{', '\}', '\&', '\%', '\$', '\#', '\_', '\textasciitilde{}', '\textasciicircum{}', '\textless ', '\textgreater '),
-            $text);
+            $text
+        );
         //finalize escaping
         $text = str_replace('\\textbackslash', '\textbackslash{}', $text);
         //replace entities in TEXT
@@ -167,14 +168,14 @@ class helper_plugin_latexit extends DokuWiki_Plugin {
      * Increase recursion level by one
      */
     public function incrementRecursionDepth() {
-        $this->recursion_depth ++;
+        $this->recursion_depth++;
     }
 
     /**
      * Decrease recursion level by one
      */
     public function decrementRecursionDepth() {
-        $this->recursion_depth --;
+        $this->recursion_depth--;
     }
 
     /**
@@ -192,7 +193,7 @@ class helper_plugin_latexit extends DokuWiki_Plugin {
      * @return boolean Is immersed in recursion?
      */
     public function isImmersed() {
-        if ($this->recursion_depth > 1) {
+        if($this->recursion_depth > 1) {
             return true;
         }
         return false;

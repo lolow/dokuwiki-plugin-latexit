@@ -14,17 +14,20 @@
 class Rowspan {
     /**
      * Rowspan itself
-     * @var int 
+     *
+     * @var int
      */
     protected $rowspan;
     /**
      * Id of a cell (order in a row), which started rowspan.
+     *
      * @var int
      */
     protected $cell_id;
-           
+
     /**
      * Creates new rowspan
+     *
      * @param int $rowspan Rowspan itself.
      * @param int $cell_id Id of a cell.
      */
@@ -32,8 +35,10 @@ class Rowspan {
         $this->rowspan = $rowspan;
         $this->cell_id = $cell_id;
     }
+
     /**
      * Returns the rowspan
+     *
      * @return int Rowspan
      */
     public function getRowspan() {
@@ -42,6 +47,7 @@ class Rowspan {
 
     /**
      * Returns the cell id
+     *
      * @return int Cell order in a row
      */
     public function getCellId() {
@@ -50,6 +56,7 @@ class Rowspan {
 
     /**
      * Sets Rowspan
+     *
      * @param int $rowspan
      */
     public function setRowspan($rowspan) {
@@ -58,6 +65,7 @@ class Rowspan {
 
     /**
      * Sets cell Id
+     *
      * @param int $cell_id
      */
     public function setCellId($cell_id) {

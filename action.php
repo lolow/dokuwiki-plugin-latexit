@@ -3,14 +3,13 @@
 /**
  * DokuWiki Plugin latexit (Action Component)
  *
- * @license GPL 2 http://www.gnu.org/licenses/gpl-2.0.html
- * @author  Adam Kučera <adam.kucera@wrent.cz>
+ * @license    GPL 2 http://www.gnu.org/licenses/gpl-2.0.html
+ * @author     Adam Kučera <adam.kucera@wrent.cz>
  * @author     Luigi Micco <l.micco@tiscali.it>
  * @author     Andreas Gohr <andi@splitbrain.org>
  */
 // must be run within Dokuwiki
-if (!defined('DOKU_INC'))
-    die();
+if(!defined('DOKU_INC')) die();
 
 /**
  * Action plugin component class handles calling of events before and after
@@ -36,7 +35,7 @@ class action_plugin_latexit extends DokuWiki_Action_Plugin {
      * This function is based on dw2pdf plugin.
      * It is not my own work.
      * https://github.com/splitbrain/dokuwiki-plugin-dw2pdf/blob/master/
-     * 
+     *
      * @param Doku_Event $event
      * @param mixed      $param not defined
      * @author     Luigi Micco <l.micco@tiscali.it>
@@ -45,9 +44,9 @@ class action_plugin_latexit extends DokuWiki_Action_Plugin {
     public function addbutton(Doku_Event $event, $param) {
         global $ID, $REV;
 
-        if ( $this->getConf('showexportbutton') && $event->data['view'] == 'main') {
+        if($this->getConf('showexportbutton') && $event->data['view'] == 'main') {
             $params = array('do' => 'export_latexit');
-            if ($REV) {
+            if($REV) {
                 $params['rev'] = $REV;
             }
 
@@ -69,14 +68,14 @@ class action_plugin_latexit extends DokuWiki_Action_Plugin {
      * page will generate new file.
      *
      * @param Doku_Event $event Pointer to the give DW event.
-     * @param array $param event parameters
+     * @param array      $param event parameters
      */
     public function _purgeCache(Doku_Event $event, $param) {
 
         /** @var cache_parser $cache */
-        $cache = &$event->data;
+        $cache = & $event->data;
 
-        if ($cache->mode == 'latexit') {
+        if($cache->mode == 'latexit') {
             /** @var cache_renderer $cache */
 
             // use per header indent level a separated cache file of the rendered latexit page
@@ -106,14 +105,14 @@ class action_plugin_latexit extends DokuWiki_Action_Plugin {
             //add included pages to dependencies
             $depends = p_get_metadata($cachepageid, 'plugin_latexit');
 
-            if (!is_array($depends)) return; // nothing to do for us
+            if(!is_array($depends)) return; // nothing to do for us
 
-            if (is_array($depends['insertedpages'])) {
-                foreach ($depends['insertedpages'] as $pageid => $exists) {
-                    if (!$exists) continue;
+            if(is_array($depends['insertedpages'])) {
+                foreach($depends['insertedpages'] as $pageid => $exists) {
+                    if(!$exists) continue;
 
                     $file = wikiFN($pageid);
-                    if (!in_array($file, $cache->depends['files'])) {
+                    if(!in_array($file, $cache->depends['files'])) {
                         $cache->depends['files'][] = $file;
                     }
                 }

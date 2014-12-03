@@ -64,9 +64,9 @@ class syntax_plugin_latexit_config extends DokuWiki_Syntax_Plugin {
     /**
      * Store config in metadata
      *
-     * @param string        $mode      Renderer mode (supported modes: xhtml)
-     * @param Doku_Renderer $renderer  The renderer
-     * @param array         $data      The data from the handler() function
+     * @param string        $mode     Renderer mode (supported modes: xhtml)
+     * @param Doku_Renderer $renderer The renderer
+     * @param array         $data     The data from the handler() function
      * @return bool If rendering was successful.
      */
     public function render($mode, Doku_Renderer $renderer, $data) {

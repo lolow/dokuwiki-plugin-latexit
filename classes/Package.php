@@ -14,22 +14,26 @@ class Package {
 
     /**
      * Name of the LaTeX package.
-     * @var string 
+     *
+     * @var string
      */
     protected $name;
     /**
      * Array of the package parameters.
-     * @var array of strings 
+     *
+     * @var array of strings
      */
     protected $parameters;
     /**
      * Array of commands called after inserting the package.
+     *
      * @var array of strings
      */
     protected $commands;
 
     /**
      * Creates an Package object.
+     *
      * @param string $name Name of the package
      */
 
@@ -41,21 +45,23 @@ class Package {
 
     /**
      * Adds new parameter to the package and prevents duplicates.
+     *
      * @param string $name Name of the parameter
      */
 
     public function addParameter($name) {
-        if (!in_array($name, $this->parameters)) {
+        if(!in_array($name, $this->parameters)) {
             $this->parameters[] = $name;
         }
     }
-    
+
     /**
      * Adds new command to the package and prevents duplicates.
+     *
      * @param string $command Command.
      */
     public function addCommand($command) {
-        if (!in_array($command, $this->commands)) {
+        if(!in_array($command, $this->commands)) {
             $this->commands[] = $command;
         }
     }
@@ -66,7 +72,7 @@ class Package {
      * @return string
      */
     public function printUsePackage() {
-        $data  = '\\usepackage';
+        $data = '\\usepackage';
         $data .= $this->printParameters();
         $data .= '{';
         $data .= helper_plugin_latexit::escape($this->getName());
@@ -78,6 +84,7 @@ class Package {
 
     /**
      * Prints all parameters, so they can be used in LaTeX \usepackage command
+     *
      * @return String List of parameters in right format.
      */
     public function printParameters() {
@@ -86,25 +93,27 @@ class Package {
         $parameters = $this->parameters;
         $parameters = array_map(array('helper_plugin_latexit', 'escape'), $parameters);
         $parameters = join(', ', $parameters);
-        return '['.$parameters.']';
+        return '[' . $parameters . ']';
     }
-    
+
     /**
      * Prints all commands, each on new line.
+     *
      * @return String Text of commands.
      */
     public function printCommands() {
         if(!count($this->commands)) return '';
 
         $commands = '';
-        foreach ($this->commands as $c) {
-            $commands .= $c."\n";
+        foreach($this->commands as $c) {
+            $commands .= $c . "\n";
         }
         return $commands;
     }
 
     /**
      * Returns the name of the package.
+     *
      * @return string Name of the package.
      */
     public function getName() {

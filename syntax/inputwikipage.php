@@ -5,10 +5,10 @@
  *
  * @license GPL 2 http://www.gnu.org/licenses/gpl-2.0.html
  * @author  Adam Kučera <adam.kucera@wrent.cz>
- * @author Gerrit Uitslag <klapinklapin@gmail.com>
+ * @author  Gerrit Uitslag <klapinklapin@gmail.com>
  */
 // must be run within Dokuwiki
-if (!defined('DOKU_INC')) die();
+if(!defined('DOKU_INC')) die();
 
 /**
  * Syntax component handels all substitutions and new DW commands in original text.
@@ -43,10 +43,10 @@ class syntax_plugin_latexit_inputwikipage extends DokuWiki_Syntax_Plugin {
      *  - \inputwikipage{<pageid>}
      *  - \inputwikipage[<levelnr>]{<pageid>}
      *
-     * @param string $match The match of the syntax
-     * @param int    $state The state of the handler
-     * @param int    $pos The position in the document
-     * @param Doku_Handler    $handler The handler
+     * @param string       $match   The match of the syntax
+     * @param int          $state   The state of the handler
+     * @param int          $pos     The position in the document
+     * @param Doku_Handler $handler The handler
      * @return array Data for the renderer
      */
     public function handle($match, $state, $pos, Doku_Handler $handler) {
@@ -61,8 +61,8 @@ class syntax_plugin_latexit_inputwikipage extends DokuWiki_Syntax_Plugin {
             $options = 1;
         }
         $level = (int) $options;
-        if($level > 5) $level = 5;  //<h5>
-        if($level < 1) $level = 1;  //<h1>
+        if($level > 5) $level = 5; //<h5>
+        if($level < 1) $level = 1; //<h1>
 
         return array($state, $level, $rawpageid, $title);
     }
@@ -70,14 +70,14 @@ class syntax_plugin_latexit_inputwikipage extends DokuWiki_Syntax_Plugin {
     /**
      * Render xhtml output or metadata
      *
-     * @param string         $mode      Renderer mode (supported modes: xhtml)
-     * @param Doku_Renderer  $renderer  The renderer
-     * @param array          $data      The data from the handler() function
+     * @param string        $mode     Renderer mode (supported modes: xhtml)
+     * @param Doku_Renderer $renderer The renderer
+     * @param array         $data     The data from the handler() function
      * @return bool If rendering was successful.
      */
     public function render($mode, Doku_Renderer $renderer, $data) {
         global $ID;
-        list(/* $state */, $level, $pageid, $title) = $data;
+        list( /* $state */, $level, $pageid, $title) = $data;
 
         if($level === null) return false;
 
@@ -88,7 +88,7 @@ class syntax_plugin_latexit_inputwikipage extends DokuWiki_Syntax_Plugin {
             //inserts the information about set header level to XHMTL
             /** @var Doku_Renderer_xhtml $renderer */
 
-            $renderer->doc .= '<h'.$level.'>'.hsc($this->getConf('link_insertion_message')).'</h'.$level.'>';
+            $renderer->doc .= '<h' . $level . '>' . hsc($this->getConf('link_insertion_message')) . '</h' . $level . '>';
             $renderer->internallink($pageid, $title);
             return true;
 

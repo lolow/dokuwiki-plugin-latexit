@@ -14,22 +14,26 @@ class LabelHandler {
 
     /**
      * Instance of a LabelHandler
+     *
      * @var LabelHandler
      */
     protected static $instance;
     /**
      * All used labels.
-     * @var array 
+     *
+     * @var array
      */
     protected $labels;
     /**
      * Usage count of each label.
-     * @var array 
+     *
+     * @var array
      */
     protected $count;
-    
+
     /**
      * The handler is singleton, so you can access it only by this function.
+     *
      * @return LabelHandler
      */
     public static function getInstance() {
@@ -38,7 +42,7 @@ class LabelHandler {
         }
         return LabelHandler::$instance;
     }
-    
+
     /**
      * Private constructor can be called only by getInstance method.
      */
@@ -46,9 +50,10 @@ class LabelHandler {
         $this->labels = array();
         $this->count = array();
     }
-    
+
     /**
      * Inserts new label to array and returns its unique version.
+     *
      * @param string $label
      * @return string
      */
@@ -58,7 +63,7 @@ class LabelHandler {
         if($search === FALSE) {
             $this->labels[] = $label;
             $this->count[] = 1;
-        } 
+        }
         //else increase count and return unique version with count in the end
         else {
             $this->count[$search]++;
