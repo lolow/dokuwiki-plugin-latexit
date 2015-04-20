@@ -714,7 +714,7 @@ class renderer_plugin_latexit_test extends DokuWikiTest {
         $this->clearDoc();
 
         $this->r->internalmedia("pic:picture.png", "aaa", "center");
-        $string = "\\centering\\includegraphics[keepaspectratio=true,width=0.8\\textwidth]{picture}\n";
+        $string = "{\\centering\\includegraphics[keepaspectratio=true,width=0.8\\textwidth]{picture}}\n";
         $this->assertEquals($string, $this->r->doc);
         $this->clearDoc();
 
@@ -730,7 +730,7 @@ class renderer_plugin_latexit_test extends DokuWikiTest {
         $this->clearDoc();
 
         $this->r->internalmedia("picture.png", "aaa", "center");
-        $string = "\\centering\\includegraphics[keepaspectratio=true,width=0.8\\textwidth]{picture}\n";
+        $string = "{\\centering\\includegraphics[keepaspectratio=true,width=0.8\\textwidth]{picture}}\n";
         $this->assertEquals($string, $this->r->doc);
         $this->clearDoc();
 
@@ -751,7 +751,7 @@ class renderer_plugin_latexit_test extends DokuWikiTest {
         $this->clearDoc();
 
         $this->r->externalmedia("http://url.com/picture.png", "aaa", "center");
-        $string = "\\centering\\includegraphics[keepaspectratio=true,width=0.8\\textwidth]{picture}\n";
+        $string = "{\\centering\\includegraphics[keepaspectratio=true,width=0.8\\textwidth]{picture}}\n";
         $this->assertEquals($string, $this->r->doc);
         $this->clearDoc();
 

@@ -1031,8 +1031,8 @@ class renderer_plugin_latexit extends Doku_Renderer {
         } elseif($this->recursion_handler->disallow(wikiFN($link))) {
             //warn the user about unending recursion
             $this->_newline(2);
-            $this->cdata("%!!! RECURSION LOOP HAS BEEN PREVENTED !!!");
-            $this->_newline(2);
+            //$this->cdata("%!!! RECURSION LOOP HAS BEEN PREVENTED !!!");
+            //$this->_newline(2);
 
         } else {
             //insert this page to RecursionHandler
@@ -1043,14 +1043,14 @@ class renderer_plugin_latexit extends Doku_Renderer {
 
             $this->_newline(2);
             //insert comment to LaTeX
-            $this->cdata("%RECURSIVELY INSERTED FILE START");
-            $this->_newline(2);
+            //$this->cdata("%RECURSIVELY INSERTED FILE START");
+            //$this->_newline(2);
             //insert parsed data
             $this->doc .= $parsedpage;
             $this->_newline(2);
             //insert comment to LaTeX
-            $this->cdata("%RECURSIVELY INSERTED FILE END");
-            $this->_newline(2);
+            //$this->cdata("%RECURSIVELY INSERTED FILE END");
+            //$this->_newline(2);
 
             //remove this page from RecursionHandler
             $this->recursion_handler->remove(wikiFN($link));
