@@ -327,7 +327,7 @@ class renderer_plugin_latexit extends Doku_Renderer {
             $this->_removeEntities();
             $this->_fixImageRef();
 
-            $latexoutputfilename = 'output' . time() . '.latex';
+            $latexoutputfilename = 'output' . time() . '.tex';
 
             if($this->media || $hasBibliography) {
                 //file to download will be ZIP archive
